@@ -1,0 +1,42 @@
+{
+  "name": "projectflow-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ProjectFlow REST API - Node.js + TypeScript + Azure SQL + Microsoft Entra ID",
+  "type": "module",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
+    "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
+    "db:seed-sql": "tsx scripts/generateSeedSql.ts"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.10.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
+    "jose": "^6.0.11",
+    "mssql": "^11.0.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/mssql": "^9.1.7",
+    "@types/node": "^22.15.0",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.0"
+  }
+}
