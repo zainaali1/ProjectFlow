@@ -1,0 +1,91 @@
+# Builds the React UI and the Node API into one package and deploys it to
+# Azure App Service whenever main changes (i.e. when a pull request is merged).
+# Authentication to Azure uses OpenID Connect - no passwords stored in GitHub.
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # needed for OIDC login to Azure
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build web
+        working-directory: web
+        env:
+          VITE_AUTH_MODE: entra
+          VITE_AZURE_TENANT_ID: ${{ vars.VITE_AZURE_TENANT_ID }}
+          VITE_SPA_CLIENT_ID: ${{ vars.VITE_SPA_CLIENT_ID }}
+          VITE_API_SCOPE: ${{ vars.VITE_API_SCOPE }}
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+
+      - name: Test and build API
+        working-directory: api
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm test
+          npm run build
+
+      - name: Assemble release package
+        run: |
+          mkdir release
+          cp -r api/dist release/dist
+          cp api/package.json release/
+          [ -f api/package-lock.json ] && cp api/package-lock.json release/ || true
+          cp -r web/dist release/public
+          cd release
+          if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release
+          include-hidden-files: true
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          package: release
+
+      - name: Smoke test
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://${{ vars.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/health || true)
+            echo "health: $code"; [ "$code" = "200" ] && exit 0; sleep 20
+          done
+          exit 1
