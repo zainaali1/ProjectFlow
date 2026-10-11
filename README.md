@@ -2,6 +2,10 @@
 
 A full-stack project management website: **projects**, **tasks**, **workers** and a **schedule** of who works on which project and task, with a calendar view and a list view.
 
+| Overview | Schedule (calendar) | Phone |
+| --- | --- | --- |
+| ![Overview](docs/screenshots/overview.png) | ![Schedule calendar](docs/screenshots/schedule-calendar.png) | ![Schedule on a phone](docs/screenshots/mobile-schedule.png) |
+
 | Layer | Technology |
 | --- | --- |
 | UI | React 19 + TypeScript, built with Vite, responsive down to phone size |
