@@ -15,20 +15,26 @@
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
+# Windows Git Bash support: stop Git Bash rewriting Azure IDs that start with "/",
+# and strip the Windows line endings (\r) that az adds to captured values.
+export MSYS_NO_PATHCONV=1
+azv() { az "$@" | tr -d '\r'; }
+newid() { node -e "console.log(require('crypto').randomUUID())" | tr -d '\r'; }
+
 PROD_URL="${1:-}"
 LOCAL_URL="http://localhost:5173"
-TENANT_ID="$(az account show --query tenantId -o tsv)"
+TENANT_ID="$(azv account show --query tenantId -o tsv)"
 
-SCOPE_ID="$(uuidgen | tr 'A-Z' 'a-z')"
-ROLE_ID="$(uuidgen | tr 'A-Z' 'a-z')"
+SCOPE_ID="$(newid)"
+ROLE_ID="$(newid)"
 
 echo "Creating API app registration..."
-API_APP_ID="$(az ad app create --display-name "ProjectFlow API" --sign-in-audience AzureADMyOrg --query appId -o tsv)"
+API_APP_ID="$(azv ad app create --display-name "ProjectFlow API" --sign-in-audience AzureADMyOrg --query appId -o tsv)"
 az ad sp create --id "$API_APP_ID" >/dev/null
 az ad app update --id "$API_APP_ID" --identifier-uris "api://$API_APP_ID"
 
 echo "Creating Web (SPA) app registration..."
-SPA_APP_ID="$(az ad app create --display-name "ProjectFlow Web" --sign-in-audience AzureADMyOrg --query appId -o tsv)"
+SPA_APP_ID="$(azv ad app create --display-name "ProjectFlow Web" --sign-in-audience AzureADMyOrg --query appId -o tsv)"
 az ad sp create --id "$SPA_APP_ID" >/dev/null
 
 REDIRECTS="\"$LOCAL_URL\""
@@ -80,9 +86,11 @@ az rest --method PATCH \
     }]
   }"
 
+echo "Waiting for Entra ID to apply the changes..."; sleep 30
+
 # Give yourself the manager role (needed only if you set ENFORCE_ROLES=true)
-ME="$(az ad signed-in-user show --query id -o tsv)"
-API_SP_ID="$(az ad sp show --id "$API_APP_ID" --query id -o tsv)"
+ME="$(azv ad signed-in-user show --query id -o tsv)"
+API_SP_ID="$(azv ad sp show --id "$API_APP_ID" --query id -o tsv)"
 az rest --method POST \
   --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$API_SP_ID/appRoleAssignedTo" \
   --headers "Content-Type=application/json" \
