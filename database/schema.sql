@@ -11,7 +11,6 @@ IF OBJECT_ID('dbo.ScheduleEntries', 'U') IS NOT NULL DROP TABLE dbo.ScheduleEntr
 IF OBJECT_ID('dbo.Tasks', 'U')           IS NOT NULL DROP TABLE dbo.Tasks;
 IF OBJECT_ID('dbo.Projects', 'U')        IS NOT NULL DROP TABLE dbo.Projects;
 IF OBJECT_ID('dbo.Workers', 'U')         IS NOT NULL DROP TABLE dbo.Workers;
-GO
 
 /* ---------- Workers: the people who can be scheduled ---------- */
 CREATE TABLE dbo.Workers (
@@ -25,7 +24,6 @@ CREATE TABLE dbo.Workers (
     CreatedAt   DATETIME2(0)      NOT NULL CONSTRAINT DF_Workers_CreatedAt DEFAULT (SYSUTCDATETIME()),
     UpdatedAt   DATETIME2(0)      NOT NULL CONSTRAINT DF_Workers_UpdatedAt DEFAULT (SYSUTCDATETIME())
 );
-GO
 
 /* ---------- Projects ---------- */
 CREATE TABLE dbo.Projects (
@@ -42,7 +40,6 @@ CREATE TABLE dbo.Projects (
     UpdatedAt   DATETIME2(0)      NOT NULL CONSTRAINT DF_Projects_UpdatedAt DEFAULT (SYSUTCDATETIME()),
     CONSTRAINT CK_Projects_Dates CHECK (EndDate IS NULL OR StartDate IS NULL OR EndDate >= StartDate)
 );
-GO
 
 /* ---------- Tasks: belong to exactly one project ---------- */
 CREATE TABLE dbo.Tasks (
@@ -61,7 +58,7 @@ CREATE TABLE dbo.Tasks (
     CONSTRAINT FK_Tasks_Projects FOREIGN KEY (ProjectId) REFERENCES dbo.Projects (ProjectId) ON DELETE CASCADE
 );
 CREATE INDEX IX_Tasks_ProjectId ON dbo.Tasks (ProjectId);
-GO
+
 
 /* ---------- ScheduleEntries: who works on which project/task, and when ----------
    TaskId is optional (general project time). Foreign keys use NO ACTION
@@ -86,6 +83,6 @@ CREATE INDEX IX_Schedule_Worker_Time ON dbo.ScheduleEntries (WorkerId, StartTime
 CREATE INDEX IX_Schedule_Project     ON dbo.ScheduleEntries (ProjectId);
 CREATE INDEX IX_Schedule_Task        ON dbo.ScheduleEntries (TaskId);
 CREATE INDEX IX_Schedule_StartTime   ON dbo.ScheduleEntries (StartTime);
-GO
+
 
 PRINT 'ProjectFlow schema created.';
